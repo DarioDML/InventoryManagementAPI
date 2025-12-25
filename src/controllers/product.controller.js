@@ -1,6 +1,15 @@
 const Product = require('../models/product.model');
 
 class ProductController {
+    static async getLowStock(req, res, next) {
+        try {
+            const products = await Product.findLowStock();
+            res.json(products);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     static async getAll(req, res, next) {
         try {
             const { limit, offset, search, sort, order } = req.query;

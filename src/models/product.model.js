@@ -73,6 +73,11 @@ class Product {
         return result.affectedRows > 0;
     }
     
+    static async findLowStock() {
+        const [rows] = await db.query('SELECT * FROM products WHERE quantity <= reorder_point');
+        return rows;
+    }
+
     // Check for SKU uniqueness
     static async findBySku(sku) {
         const [rows] = await db.query('SELECT id FROM products WHERE sku = ?', [sku]);
