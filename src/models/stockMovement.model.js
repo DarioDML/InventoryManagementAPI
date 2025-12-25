@@ -1,25 +1,49 @@
-const db = require('../config/db');
+const { getDb } = require('../config/db');
+const { ObjectId } = require('mongodb');
 
 class StockMovement {
     static async findAll({ limit = 10, offset = 0, sort = 'created_at', order = 'DESC' }) {
-        let query = 'SELECT sm.*, p.name as product_name, p.sku as product_sku FROM stock_movements sm JOIN products p ON sm.product_id = p.id';
+        const db = getDb();
         
-        // Sorting validation
-        const allowedSorts = ['created_at', 'quantity', 'type'];
-        const sortColumn = allowedSorts.includes(sort) ? sort : 'created_at';
-        const sortOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+        const sortDirection = order.toUpperCase() === 'ASC' ? 1 : -1;
+        // Map common sort keys if needed
+        const sortObj = { [sort]: sortDirection };
 
-        query += ` ORDER BY sm.${sortColumn} ${sortOrder} LIMIT ? OFFSET ?`;
-        
-        const [rows] = await db.query(query, [parseInt(limit), parseInt(offset)]);
-        
-        // Count
-        const [countResult] = await db.query('SELECT COUNT(*) as total FROM stock_movements');
+        // We need to look up product details (aggregate)
+        const pipeline = [
+            { $sort: sortObj },
+            { $skip: parseInt(offset) },
+            { $limit: parseInt(limit) },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: 'product_id',
+                    foreignField: '_id',
+                    as: 'product'
+                }
+            },
+            { $unwind: '$product' }, 
+            {
+                $project: {
+                    _id: 1,
+                    type: 1,
+                    quantity: 1,
+                    description: 1,
+                    created_at: 1,
+                    product_id: 1,
+                    product_name: '$product.name',
+                    product_sku: '$product.sku'
+                }
+            }
+        ];
+
+        const data = await db.collection('stock_movements').aggregate(pipeline).toArray();
+        const total = await db.collection('stock_movements').countDocuments();
 
         return {
-            data: rows,
+            data,
             pagination: {
-                total: countResult[0].total,
+                total,
                 limit: parseInt(limit),
                 offset: parseInt(offset),
                 page: Math.floor(offset / limit) + 1
@@ -27,17 +51,22 @@ class StockMovement {
         };
     }
 
-    // Accepts an external connection for transaction participation
-    static async create(data, connection) {
-        const { product_id, type, quantity, description } = data;
-        // Use the provided connection (transaction) or default pool (though controller should provide it)
-        const conn = connection || db; 
+    // Pass 'session' for transaction support
+    static async create(data, session) {
+        const db = getDb();
+        const movement = {
+            product_id: new ObjectId(data.product_id), // Ensure it's ObjectId
+            type: data.type,
+            quantity: parseInt(data.quantity),
+            description: data.description,
+            created_at: new Date()
+        };
         
-        const [result] = await conn.query(
-            'INSERT INTO stock_movements (product_id, type, quantity, description) VALUES (?, ?, ?, ?)',
-            [product_id, type, quantity, description || null]
-        );
-        return result.insertId;
+        // Options with session
+        const options = session ? { session } : {};
+        
+        const result = await db.collection('stock_movements').insertOne(movement, options);
+        return result.insertedId;
     }
 }
 

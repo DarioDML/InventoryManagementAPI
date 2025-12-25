@@ -1,22 +1,27 @@
-const { body } = require('express-validator');
+const { body, param } = require('express-validator');
 const Product = require('../models/product.model');
+const { ObjectId } = require('mongodb');
+
+// Helper to check for valid ObjectId
+const isObjectId = (value) => {
+    return ObjectId.isValid(value);
+};
 
 const productValidators = [
     body('name')
         .trim()
         .notEmpty().withMessage('Product name is required')
-        // Requirement: "Een voornaam kan geen cijfers bevatten" - applied to Product Name as per user request
         .matches(/^[^0-9]*$/).withMessage('Product name cannot contain numbers'),
     
     body('sku')
         .trim()
         .notEmpty().withMessage('SKU is required')
         .custom(async (value, { req }) => {
-            // Check if SKU exists and it's not the same product we are updating
             const existingProduct = await Product.findBySku(value);
             if (existingProduct) {
-                // If updating (req.params.id exists), allow if it's the same product
-                if (req.params.id && existingProduct.id === parseInt(req.params.id)) {
+                // If checking during update, allow same product
+                // Req.params.id is string here
+                if (req.params.id && existingProduct._id.toString() === req.params.id) {
                     return true;
                 }
                 throw new Error('SKU already exists');
@@ -36,7 +41,29 @@ const productValidators = [
         
     body('supplier_id')
         .optional()
-        .isInt().withMessage('Supplier ID must be an integer')
+        // Removed isInt check for supplier_id as it might be ObjectId in future, allowing string for now
+        .isString().withMessage('Supplier ID must be valid')
 ];
 
-module.exports = { productValidators };
+// Add parameter validation for ID routes
+const validateId = [
+    param('id').custom((value) => {
+        if (!isObjectId(value)) {
+            throw new Error('Invalid ID format');
+        }
+        return true;
+    })
+];
+
+const movementValidators = [
+    body('product_id')
+        .custom((value) => {
+            if (!isObjectId(value)) throw new Error('Invalid Product ID');
+            return true;
+        }),
+    body('type').isIn(['IN', 'OUT', 'ADJUSTMENT']).withMessage('Type must be IN, OUT, or ADJUSTMENT'),
+    body('quantity').isInt({ gt: 0 }).withMessage('Quantity must be greater than 0'),
+    body('description').optional().isString()
+];
+
+module.exports = { productValidators, movementValidators, validateId };

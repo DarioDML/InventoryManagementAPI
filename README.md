@@ -13,7 +13,7 @@ A database-driven REST API for managing inventory, products, and stock movements
 ## Prerequisites
 
 - Node.js (v20+)
-- MySQL
+- MongoDB (Atlas or Local)
 - Git
 
 ## Installation
@@ -34,10 +34,11 @@ A database-driven REST API for managing inventory, products, and stock movements
     ```bash
     cp .env.example .env
     ```
-    - Update `.env` with your database credentials.
+    - Update `.env` with your `MONGO_URI`.
 
 4.  **Database Setup:**
-    - Import the schema from `database/schema.sql` (to be created) into your MySQL database.
+    - No manual schema creation needed usually with MongoDB, but collections will be created automatically.
+    - Ensure your MongoDB Connection String is valid in `.env`.
 
 5.  **Run the server:**
     - Development mode:
@@ -57,7 +58,7 @@ Visit `http://localhost:3000/` in your browser to view the API documentation.
 
 - **Runtime**: Node.js
 - **Framework**: Express
-- **Database**: MySQL (via `mysql2`)
+- **Database**: MongoDB (via `mongodb` native driver)
 - **Validation**: express-validator
 
 ## License

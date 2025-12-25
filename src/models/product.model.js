@@ -1,43 +1,37 @@
-const db = require('../config/db');
+const { getDb } = require('../config/db');
+const { ObjectId } = require('mongodb');
 
 class Product {
     static async findAll({ limit = 10, offset = 0, search = '', sort = 'created_at', order = 'DESC' }) {
-        let query = 'SELECT * FROM products';
-        const params = [];
-        const whereClauses = [];
+        const db = getDb();
+        const collection = db.collection('products');
 
+        const query = {};
         if (search) {
-            whereClauses.push('(name LIKE ? OR sku LIKE ?)');
-            params.push(`%${search}%`, `%${search}%`);
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { sku: { $regex: search, $options: 'i' } }
+            ];
         }
 
-        if (whereClauses.length > 0) {
-            query += ' WHERE ' + whereClauses.join(' AND ');
-        }
-
-        // Validate sort column to prevent SQL injection
+        // Sorting
         const allowedSorts = ['price', 'quantity', 'created_at', 'updated_at', 'name'];
         const sortColumn = allowedSorts.includes(sort) ? sort : 'created_at';
-        const sortOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+        const sortDirection = order.toUpperCase() === 'ASC' ? 1 : -1;
+        const sortObj = { [sortColumn]: sortDirection };
 
-        query += ` ORDER BY ${sortColumn} ${sortOrder} LIMIT ? OFFSET ?`;
-        params.push(parseInt(limit), parseInt(offset));
+        const products = await collection.find(query)
+            .sort(sortObj)
+            .skip(parseInt(offset))
+            .limit(parseInt(limit))
+            .toArray();
 
-        const [rows] = await db.query(query, params);
-        
-        // Get total count for pagination metadata
-        let countQuery = 'SELECT COUNT(*) as total FROM products';
-        const countParams = [];
-        if (whereClauses.length > 0) {
-            countQuery += ' WHERE ' + whereClauses.join(' AND ');
-            countParams.push(...params.slice(0, params.length - 2)); // Exclude limit/offset
-        }
-        const [countResult] = await db.query(countQuery, countParams);
-        
+        const total = await collection.countDocuments(query);
+
         return {
-            data: rows,
+            data: products,
             pagination: {
-                total: countResult[0].total,
+                total,
                 limit: parseInt(limit),
                 offset: parseInt(offset),
                 page: Math.floor(offset / limit) + 1
@@ -46,42 +40,76 @@ class Product {
     }
 
     static async findById(id) {
-        const [rows] = await db.query('SELECT * FROM products WHERE id = ?', [id]);
-        return rows[0];
+        const db = getDb();
+        try {
+            return await db.collection('products').findOne({ _id: new ObjectId(id) });
+        } catch (e) {
+            return null;
+        }
+    }
+
+    static async findLowStock() {
+        const db = getDb();
+        // Since we can't easily compare two fields in a simple find without $expr,
+        // and reorder_point might be different per product.
+        return await db.collection('products').find({
+            $expr: { $lte: ["$quantity", "$reorder_point"] }
+        }).toArray();
     }
 
     static async create(data) {
-        const { name, sku, price, quantity, reorder_point, supplier_id } = data;
-        const [result] = await db.query(
-            'INSERT INTO products (name, sku, price, quantity, reorder_point, supplier_id) VALUES (?, ?, ?, ?, ?, ?)',
-            [name, sku, price, quantity, reorder_point || 10, supplier_id || null]
-        );
-        return result.insertId;
+        const db = getDb();
+        const product = {
+            ...data,
+            quantity: parseInt(data.quantity) || 0,
+            price: parseFloat(data.price),
+            reorder_point: parseInt(data.reorder_point) || 10,
+            created_at: new Date(),
+            updated_at: new Date()
+        };
+        const result = await db.collection('products').insertOne(product);
+        return result.insertedId;
     }
 
     static async update(id, data) {
-        const { name, sku, price, quantity, reorder_point, supplier_id } = data;
-        const [result] = await db.query(
-            'UPDATE products SET name = ?, sku = ?, price = ?, quantity = ?, reorder_point = ?, supplier_id = ? WHERE id = ?',
-            [name, sku, price, quantity, reorder_point, supplier_id, id]
-        );
-        return result.affectedRows > 0;
+        const db = getDb();
+        const updateData = {
+            ...data,
+            updated_at: new Date()
+        };
+        // Ensure numeric types
+        if (updateData.quantity !== undefined) updateData.quantity = parseInt(updateData.quantity);
+        if (updateData.price !== undefined) updateData.price = parseFloat(updateData.price);
+        
+        try {
+            const result = await db.collection('products').updateOne(
+                { _id: new ObjectId(id) },
+                { $set: updateData }
+            );
+            return result.matchedCount > 0;
+        } catch (e) {
+            return false;
+        }
     }
 
     static async delete(id) {
-        const [result] = await db.query('DELETE FROM products WHERE id = ?', [id]);
-        return result.affectedRows > 0;
-    }
-    
-    static async findLowStock() {
-        const [rows] = await db.query('SELECT * FROM products WHERE quantity <= reorder_point');
-        return rows;
+        const db = getDb();
+        try {
+            const result = await db.collection('products').deleteOne({ _id: new ObjectId(id) });
+            return result.deletedCount > 0;
+        } catch (e) {
+            return false;
+        }
     }
 
-    // Check for SKU uniqueness
     static async findBySku(sku) {
-        const [rows] = await db.query('SELECT id FROM products WHERE sku = ?', [sku]);
-        return rows[0];
+        const db = getDb();
+        const product = await db.collection('products').findOne({ sku });
+        // Map _id to id for compatibility with validator logic if needed
+        if (product) {
+            product.id = product._id.toString(); 
+        }
+        return product;
     }
 }
 
