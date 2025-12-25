@@ -16,6 +16,9 @@ app.use(express.static(path.join(__dirname, '../public')));
 const productRoutes = require('./routes/product.routes');
 app.use('/api/products', productRoutes);
 
+const stockMovementRoutes = require('./routes/stockMovement.routes');
+app.use('/api/stock-movements', stockMovementRoutes);
+
 // Root endpoint serves the HTML documentation
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'index.html'));
