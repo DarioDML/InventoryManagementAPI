@@ -1,28 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Management API</title>
     <style>
-        body { font-family: sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; }
-        h1 { color: #333; }
-        h2 { color: #555; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; }
-        ul { list-style-type: none; padding: 0; }
-        li { margin-bottom: 10px; background: #fafafa; padding: 10px; border-radius: 5px; border: 1px solid #eee; }
-        .method { font-weight: bold; color: #007bff; margin-right: 10px; }
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        h2 {
+            color: #555;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 10px;
+            background: #fafafa;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #eee;
+        }
+
+        .method {
+            font-weight: bold;
+            color: #007bff;
+            margin-right: 10px;
+        }
     </style>
 </head>
+
 <body>
     <h1>📦 Inventory Management API</h1>
     <p>Welcome to the Inventory Management API documentation.</p>
 
     <h2>endpoints</h2>
-    
+
     <h3>Products</h3>
     <ul>
-        <li><span class="method">GET</span> <code>/api/products</code> - List all products (supports ?limit, ?offset, ?search, ?sort)</li>
+        <li><span class="method">GET</span> <code>/api/products</code> - List all products (supports ?limit, ?offset,
+            ?search, ?sort)</li>
+        <li><span class="method">GET</span> <code>/api/products/low-stock</code> - List products below reorder point
+        </li>
         <li><span class="method">GET</span> <code>/api/products/:id</code> - Get product details</li>
         <li><span class="method">POST</span> <code>/api/products</code> - Create a new product</li>
         <li><span class="method">PUT</span> <code>/api/products/:id</code> - Update a product</li>
@@ -32,10 +72,12 @@
     <h3>Stock Movements</h3>
     <ul>
         <li><span class="method">GET</span> <code>/api/stock-movements</code> - List stock movements</li>
-        <li><span class="method">POST</span> <code>/api/stock-movements</code> - Create a stock movement (Updates product quantity)</li>
+        <li><span class="method">POST</span> <code>/api/stock-movements</code> - Create a stock movement (Updates
+            product quantity)</li>
     </ul>
 
     <h2>Status</h2>
     <p>API is running.</p>
 </body>
+
 </html>
