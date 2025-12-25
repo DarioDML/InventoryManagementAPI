@@ -45,6 +45,24 @@ const productValidators = [
         .isString().withMessage('Supplier ID must be valid')
 ];
 
+const partialProductValidators = [
+    body('name').optional().trim().notEmpty().withMessage('Product name cannot be empty')
+        .matches(/^[^0-9]*$/).withMessage('Product name cannot contain numbers'),
+    body('sku').optional().trim().notEmpty().withMessage('SKU cannot be empty')
+        .custom(async (value, { req }) => {
+            const existingProduct = await Product.findBySku(value);
+            if (existingProduct) {
+                if (req.params.id && existingProduct._id.toString() === req.params.id) return true;
+                throw new Error('SKU already exists');
+            }
+            return true;
+        }),
+    body('price').optional().isFloat({ gt: 0 }).withMessage('Price must be a number greater than 0'),
+    body('quantity').optional().isInt({ min: 0 }).withMessage('Quantity must be a non-negative integer'),
+    body('reorder_point').optional().isInt({ min: 0 }).withMessage('Reorder point must be a non-negative integer'),
+    body('supplier_id').optional().isString().withMessage('Supplier ID must be valid')
+];
+
 // Add parameter validation for ID routes
 const validateId = [
     param('id').custom((value) => {
@@ -66,4 +84,10 @@ const movementValidators = [
     body('description').optional().isString()
 ];
 
-module.exports = { productValidators, movementValidators, validateId };
+const supplierValidators = [
+    body('name').trim().notEmpty().withMessage('Supplier name is required'),
+    body('email').optional().isEmail().withMessage('Invalid email address'),
+    body('phone').optional().isMobilePhone().withMessage('Invalid phone number')
+];
+
+module.exports = { productValidators, partialProductValidators, movementValidators, supplierValidators, validateId };

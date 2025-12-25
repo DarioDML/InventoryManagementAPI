@@ -19,6 +19,9 @@ app.use('/api/products', productRoutes);
 const stockMovementRoutes = require('./routes/stockMovement.routes');
 app.use('/api/stock-movements', stockMovementRoutes);
 
+const supplierRoutes = require('./routes/supplier.routes');
+app.use('/api/suppliers', supplierRoutes);
+
 // Root endpoint serves the HTML documentation
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'index.html'));

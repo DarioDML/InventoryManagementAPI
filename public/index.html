@@ -65,7 +65,8 @@
         </li>
         <li><span class="method">GET</span> <code>/api/products/:id</code> - Get product details</li>
         <li><span class="method">POST</span> <code>/api/products</code> - Create a new product</li>
-        <li><span class="method">PUT</span> <code>/api/products/:id</code> - Update a product</li>
+        <li><span class="method">PUT</span> <code>/api/products/:id</code> - Update a product (Full)</li>
+        <li><span class="method">PATCH</span> <code>/api/products/:id</code> - Update a product (Partial)</li>
         <li><span class="method">DELETE</span> <code>/api/products/:id</code> - Delete a product</li>
     </ul>
 
@@ -74,6 +75,13 @@
         <li><span class="method">GET</span> <code>/api/stock-movements</code> - List stock movements</li>
         <li><span class="method">POST</span> <code>/api/stock-movements</code> - Create a stock movement (Updates
             product quantity)</li>
+    </ul>
+
+    <h3>Suppliers</h3>
+    <ul>
+        <li><span class="method">GET</span> <code>/api/suppliers</code> - List suppliers</li>
+        <li><span class="method">POST</span> <code>/api/suppliers</code> - Create supplier</li>
+        <li><span class="method">GET</span> <code>/api/suppliers/:id/products</code> - View products by supplier</li>
     </ul>
 
     <h2>Status</h2>
