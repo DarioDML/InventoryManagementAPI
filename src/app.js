@@ -13,8 +13,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Routes placeholders
-// const productRoutes = require('./routes/product.routes');
-// app.use('/api/products', productRoutes);
+const productRoutes = require('./routes/product.routes');
+app.use('/api/products', productRoutes);
 
 // Root endpoint serves the HTML documentation
 app.get('/', (req, res) => {
